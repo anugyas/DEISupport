@@ -1,0 +1,83 @@
+---
+title: "Code"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import Libraries
+```{r}
+library(haven)
+library(broom)
+library(magrittr)
+library(dplyr)
+library(arm)
+library(ggplot2)
+library(stats)
+```
+
+## Load Data
+```{r}
+original_data <- read_sav("~/NYU/Fall21/CausalInference/FinalProject/Bielby276/TESS2 118_Bielby_Client.sav")
+```
+
+## Listing confounders, treatment and outcome
+Treatment - 1 where response to I3 is 1 or 2, else 0
+
+Outcome - E2_1G , 1(strongly favour) to 5(strongly oppose) 
+
+Confounders - 
+
+1. S1 to S4
+2. I1 I2
+3. Demographics -
+PPAGE - continuous age varibale
+PPAGECAT - age divided into 7 categories
+PPAGECAT4 - age divided into 4 categories
+
+Choose one of the above and make dummies for categorical
+
+PPEDUC - education into 14 categories
+PPEDUCAT - education into 4 categories
+
+Choose one of the above and make dummies for categorical
+
+PPETHM - race/ethnicity categorical - make dummy
+PPGENDER - gender categorical, this will be mapped to gender_cat = 1 if male else 0
+PPHHHEAD - household head categorical
+PPHHSIZE - continuous
+PPHOUSE - housing type categorical - make dummy
+PPINCIMP - house hold income categorical - make dummy
+PPMARIT - Marital status categorical - make dummy
+PPMSACAT - msa status categorical - make dummy
+
+PPREG4 - which region of america 4 categories
+ppreg9 - which region of america 9 categories
+
+Choose one of the above and make dummies for categorical
+
+PPRENT - ownership status of home categorical - make dummy - highley likely to be correlated with house hold income
+
+Presence (binary) of household members in that age group - discuss with Namrata
+PPT01
+PPT25
+PPT612
+PPT1317
+PPT18OV
+
+PPWORK - current employment status categorical - make dummy
+PPNET - internet access presence categorical 1/0
+
+```{r}
+original_data_with_treatment <- original_data %>% mutate(treatment_var = ifelse(I3 == 1 | I3 == 2, 1, 0)) %>%  (gender_cat = ifelse(PPGENDER == 1, 1, 0))
+```
+
+ESTIMAND - 
+
+Approaches - 
+
+
+
+
