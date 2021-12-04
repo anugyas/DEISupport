@@ -16,11 +16,13 @@ library(dplyr)
 library(arm)
 library(ggplot2)
 library(stats)
+library(tidyr)
 ```
 
 ## Load Data
 ```{r}
 original_data <- read_sav("~/NYU/Fall21/CausalInference/FinalProject/Bielby276/TESS2 118_Bielby_Client.sav")
+original_data <- original_data %>% drop_na(E2_1G)
 ```
 
 ## Listing confounders, treatment and outcome
@@ -71,12 +73,27 @@ PPWORK - current employment status categorical - make dummy
 PPNET - internet access presence categorical 1/0
 
 ```{r}
-original_data_with_treatment <- original_data %>% mutate(treatment_var = ifelse(I3 == 1 | I3 == 2, 1, 0)) %>%  (gender_cat = ifelse(PPGENDER == 1, 1, 0))
+original_data_with_treatment <- original_data %>% mutate(treatment_var = ifelse(I3 == 1 | I3 == 2, 1, 0))
+#orginal_data_with_treatment <- original_data_with_treatment %>% (gender_cat = ifelse(ppgender == 1, 1, 0))
 ```
 
-ESTIMAND - 
+ESTIMAND - ATE or ATT?
 
 Approaches - 
+
+Prop score w/ 1-1 matching
+IPTW 
+GenMatch
+BART
+
+## Prop score + 1-1 matching w/ replacement
+
+```{r}
+matchitobject0 = MatchIt::matchit(treatment_var ~ factor(S1) + factor(S2) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + PPAGE + factor(PPEDUCAT) + factor(PPETHM), original_data_with_treatment, distance = "glm", link = "probit", replace = TRUE, method = "nearest")
+matchitobject0_sum <- summary(matchitobject0)
+matchitobject0_sum
+plot(matchitobject0_sum, var.order = "matched") 
+```
 
 
 
