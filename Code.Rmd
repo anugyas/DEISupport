@@ -17,12 +17,14 @@ library(arm)
 library(ggplot2)
 library(stats)
 library(tidyr)
+library(fastDummies)
 ```
 
 # Load Data
 ```{r}
-original_data <- read_sav("~/NYU/Fall21/CausalInference/FinalProject/Bielby276/TESS2 118_Bielby_Client.sav")
-original_data <- original_data %>% drop_na(E2_1G)
+data0 <- read_sav("~/NYU/Fall21/CausalInference/FinalProject/Bielby276/TESS2 118_Bielby_Client.sav")
+data1 <- data0 %>% drop_na(E2_1G)
+data2 <- filter(data1, S1 > -1 & S2> -1 & S3 > -1 & S4 > -1 & I1 > -1 & I2 > -1)
 ```
 
 # Listing confounders, treatment and outcome
@@ -77,8 +79,7 @@ PPT18OV
 PPWORK - current employment status categorical - make dummy
 PPNET - internet access presence categorical 1/0
 
-
-ESTIMAND - AT
+ESTIMAND - ATT
 
 Approaches - 
 
@@ -90,16 +91,21 @@ BART
 
 # Data Preprocessing
 ```{r}
-original_data_with_treatment_and_outcome <- original_data %>% mutate(treatment_var = ifelse(I3 == 1 | I3 == 2, 1, 0)) %>% mutate(outcome_var = E2_1G+E2_2G+E2_3G+E2_4G+E2_5G+E2_6GA+E2_7G+E2_8GA)
-orginal_data_with_treatment <- original_data_with_treatment %>% (gender_cat = ifelse(PPGENDER == 1, 1, 0))
+data3  <- data2 %>% mutate(treatment_var = ifelse(I3 == 1 | I3 == 2, 1, 0)) %>% mutate(outcome_var = (E2_1G+E2_2G+E2_3G+E2_4G+E2_5G+E2_6GA+E2_7G+E2_8GA)/8)
+data4 <- data3 %>% mutate(gender_cat = ifelse(PPGENDER == 1, 1, 0))
+data5 <- dummy_cols(data4, select_columns=c('S1', 'S2', 'S3', 'S4', 'I1', 
+                                            'I2', 'PARTY7', 'REL1', 'REL2', 'PPEDUCAT',
+                                            'PPETHM', 'PPHOUSE', 'PPINCIMP', 'PPMARIT',
+                                            'PPMSACAT', 'PPREG4', 'PPRENT', 'PPWORK'))
 ```
-# Prop score + 1-1 matching w/ replacement
 
+# Prop score + 1-1 matching w/ replacement
 ```{r}
-matchitobject0 = MatchIt::matchit(treatment_var ~ factor(S1) + factor(S2) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + PPAGE + factor(PPEDUCAT) + factor(PPETHM), original_data_with_treatment, distance = "glm", link = "probit", replace = TRUE, method = "nearest")
+matchitobject0 = MatchIt::matchit(treatment_var ~ factor(S1) + factor(S2) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(PARTY7) + factor(REL1) + factor(REL2) + PPAGE + factor(PPEDUCAT) + factor(PPETHM) + gender_cat + PPHHHEAD + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + PPNET, data3, distance = "glm", link = "probit", replace = TRUE, method = "nearest")
 matchitobject0_sum <- summary(matchitobject0)
 matchitobject0_sum
 plot(matchitobject0_sum, var.order = "matched") 
+# plot(matchitobject0, type='density', which.xs = c("factor(S1)", "factor(S2)", "factor(S3)"))
 ```
 
 
