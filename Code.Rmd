@@ -7,7 +7,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Import Libraries
+# Import Libraries
 ```{r}
 library(haven)
 library(broom)
@@ -19,14 +19,16 @@ library(stats)
 library(tidyr)
 ```
 
-## Load Data
+# Load Data
 ```{r}
 original_data <- read_sav("~/NYU/Fall21/CausalInference/FinalProject/Bielby276/TESS2 118_Bielby_Client.sav")
 original_data <- original_data %>% drop_na(E2_1G)
 ```
 
-## Listing confounders, treatment and outcome
+# Listing confounders, treatment and outcome
 Treatment - 1 where response to I3 is 1 or 2, else 0
+
+Is this treatment variable manipulable?  
 
 Outcome - E2_1G , 1(strongly favour) to 5(strongly oppose) 
 
@@ -34,14 +36,17 @@ Confounders -
 
 1. S1 to S4
 2. I1 I2
-3. Demographics -
+3. PARTY7 - categorical - make dummy
+4. REL1 - categorical - make dummy
+5. REL2 - continuous
+6. Demographics -
 PPAGE - continuous age varibale
-PPAGECAT - age divided into 7 categories
-PPAGECAT4 - age divided into 4 categories
+<!-- PPAGECAT - age divided into 7 categories -->
+<!-- PPAGECAT4 - age divided into 4 categories -->
 
 Choose one of the above and make dummies for categorical
 
-PPEDUC - education into 14 categories
+<!-- PPEDUC - education into 14 categories -->
 PPEDUCAT - education into 4 categories
 
 Choose one of the above and make dummies for categorical
@@ -56,11 +61,11 @@ PPMARIT - Marital status categorical - make dummy
 PPMSACAT - msa status categorical - make dummy
 
 PPREG4 - which region of america 4 categories
-ppreg9 - which region of america 9 categories
+<!-- ppreg9 - which region of america 9 categories -->
 
 Choose one of the above and make dummies for categorical
 
-PPRENT - ownership status of home categorical - make dummy - highley likely to be correlated with house hold income
+PPRENT - ownership status of home categorical - make dummy - highly likely to be correlated with house hold income
 
 Presence (binary) of household members in that age group - discuss with Namrata
 PPT01
@@ -72,12 +77,8 @@ PPT18OV
 PPWORK - current employment status categorical - make dummy
 PPNET - internet access presence categorical 1/0
 
-```{r}
-original_data_with_treatment <- original_data %>% mutate(treatment_var = ifelse(I3 == 1 | I3 == 2, 1, 0))
-#orginal_data_with_treatment <- original_data_with_treatment %>% (gender_cat = ifelse(ppgender == 1, 1, 0))
-```
 
-ESTIMAND - ATE or ATT?
+ESTIMAND - AT
 
 Approaches - 
 
@@ -86,7 +87,13 @@ IPTW
 GenMatch
 BART
 
-## Prop score + 1-1 matching w/ replacement
+
+# Data Preprocessing
+```{r}
+original_data_with_treatment_and_outcome <- original_data %>% mutate(treatment_var = ifelse(I3 == 1 | I3 == 2, 1, 0)) %>% mutate(outcome_var = E2_1G+E2_2G+E2_3G+E2_4G+E2_5G+E2_6GA+E2_7G+E2_8GA)
+orginal_data_with_treatment <- original_data_with_treatment %>% (gender_cat = ifelse(PPGENDER == 1, 1, 0))
+```
+# Prop score + 1-1 matching w/ replacement
 
 ```{r}
 matchitobject0 = MatchIt::matchit(treatment_var ~ factor(S1) + factor(S2) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + PPAGE + factor(PPEDUCAT) + factor(PPETHM), original_data_with_treatment, distance = "glm", link = "probit", replace = TRUE, method = "nearest")
