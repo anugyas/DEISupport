@@ -162,5 +162,17 @@ plot(matchitobject0, type = 'density', which.xs = c('REL1_11','REL1_12','REL1_13
 ```
 
 ```{r}
-plot(matchitobject0, type = 'density', which.xs = c('REL1_11','REL1_12','REL1_13'))
+plot(matchitobject0, type = 'density', which.xs = c('REL2_1','REL2_2','REL2_3'))
+plot(matchitobject0, type = 'density', which.xs = c('REL2_4','REL2_5','REL2_6'))
+```
+
+```{r}
+plot(matchitobject0, type = 'density', which.xs = c('PPAGE', 'gender_cat','PPHHHEAD'))
+plot(matchitobject0, type = 'density', which.xs = c('PPMSACAT', 'PPNET','PPHHSIZE'))
+```
+
+```{r}
+plot(matchitobject0, type = 'density', which.xs = c('PPEDUCAT_1','PPEDUCAT_2','PPEDUCAT_3'))
+plot(matchitobject0, type = 'density', which.xs = c('PPEDUCAT_4','PPETHM_1','PPETHM_2'))
+plot(matchitobject0, type = 'density', which.xs = c('PPETHM_4','PPHOUSE_1','PPHOUSE_2'))
 ```
