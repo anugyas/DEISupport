@@ -24,8 +24,7 @@ library(fastDummies)
 ```{r}
 data0 <- read_sav("/Users/namrata/Downloads/Bielby276/DATA.sav")
 data1 <- data0 %>% drop_na(E2_1G)
-data2 <- filter(data1, S1 > -1 & S2> -1 & S3 > -1 & S4 > -1 & I1 > -1 & I2 > -1)
-data2$REL1[data2$REL1<0] <- 14 # Recoding those who refused to answer as 14
+data2 <- filter(data1, S1 > -1 & S2> -1 & S3 > -1 & S4 > -1 & I1 > -1 & I2 > -1 & REL1 > -1 & REL2 > -1)
 ```
 
 # Listing confounders, treatment and outcome
@@ -37,48 +36,48 @@ Outcome - E2_1G , 1(strongly favour) to 5(strongly oppose)
 
 Confounders - 
 
-1. S1 to S4
-2. I1 I2
-3. PARTY7 - categorical - make dummy
-4. REL1 - categorical - make dummy (1-14_)
-5. REL2 - continuous(1-9)
+1. S1 to S4 (pri 1)
+2. I1 I2 (pri 1)
+3. PARTY7 - categorical - make dummy (pri 1)
+4. REL1 - categorical - make dummy (1-14, 7 missing) (pri 1)
+5. REL2 - continuous(1-9) (pri 2)
 6. Demographics -
-PPAGE - continuous age varibale
+PPAGE - continuous age varibale (pri 2)
 <!-- PPAGECAT - age divided into 7 categories -->
 <!-- PPAGECAT4 - age divided into 4 categories -->
 
 Choose one of the above and make dummies for categorical
 
 <!-- PPEDUC - education into 14 categories -->
-PPEDUCAT - education into 4 categories
+PPEDUCAT - education into 4 categories (pri 1)
 
 Choose one of the above and make dummies for categorical
 
-PPETHM - race/ethnicity categorical - make dummy
-PPGENDER - gender categorical, this will be mapped to gender_cat = 1 if male else 0
-PPHHHEAD - household head categorical
-PPHHSIZE - continuous
-PPHOUSE - housing type categorical - make dummy
-PPINCIMP - house hold income categorical - make dummy
-PPMARIT - Marital status categorical - make dummy
-PPMSACAT - msa status categorical - make dummy
+PPETHM - race/ethnicity categorical - make dummy (only 1,2, 4 exist in the data) (pri 2)
+PPGENDER - gender categorical, this will be mapped to gender_cat = 1 if male else 0 (pri 1)
+PPHHHEAD - household head categorical (pri 3)
+PPHHSIZE - continuous (pri 3)
+PPHOUSE - housing type categorical - make dummy (pri 3)
+PPINCIMP - house hold income categorical - make dummy (pri 3)
+PPMARIT - Marital status categorical - make dummy (pri 2)
+PPMSACAT - msa status categorical - already 0, 1 (pri 2)
 
-PPREG4 - which region of america 4 categories
+PPREG4 - which region of america 4 categories (pri 2)
 <!-- ppreg9 - which region of america 9 categories -->
 
 Choose one of the above and make dummies for categorical
 
-PPRENT - ownership status of home categorical - make dummy - highly likely to be correlated with house hold income
+PPRENT - ownership status of home categorical - make dummy - highly likely to be correlated with house hold income (pri 3)
 
-Presence (binary) of household members in that age group - discuss with Namrata
+Presence (binary) of household members in that age group - (pri 3)
 PPT01
 PPT25
 PPT612
 PPT1317
 PPT18OV
 
-PPWORK - current employment status categorical - make dummy
-PPNET - internet access presence categorical 1/0
+PPWORK - current employment status categorical - make dummy (pri 1)
+PPNET - internet access presence categorical 1/0 (pri 1)
 
 ESTIMAND - ATT
 
@@ -98,11 +97,11 @@ data5 <- dummy_cols(data4, select_columns=c('S1', 'S2', 'S3', 'S4', 'I1',
                                             'I2', 'PARTY7', 'REL1', 'REL2', 'PPEDUCAT','PPETHM', 'PPHOUSE', 'PPINCIMP', 'PPMARIT','PPMSACAT', 'PPREG4', 'PPRENT', 'PPWORK'))
 ```
 
-# Prop score + 1-1 matching w/ replacement
+# Prop score + 1-1 matching with replacement
 ```{r}
-matchitobject0 = MatchIt::matchit(treatment_var ~ S1_1 + S1_2 + S1_3 + S1_4 + S2_1 + S2_2 + S2_3 + S2_4 + + S3_1 + S3_2 + S3_3 + S3_4 + S4_1 + S4_2 + S4_3 + S4_4 + I1_1 + I1_2 + I1_3 + I1_4 + I2_1 + I2_2 + I2_3 + I2_4 + PARTY7_1 + PARTY7_2 + PARTY7_3 + PARTY7_4 + PARTY7_5 + PARTY7_6 + PARTY7_7 + REL1_1 + REL1_2 + REL1_3 + REL1_4 +  factor(S1) + factor(S2) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(PARTY7) + factor(REL1) + factor(REL2) + PPAGE + factor(PPEDUCAT) + factor(PPETHM) + gender_cat + PPHHHEAD + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + PPNET, data5, distance = "glm", link = "probit", replace = TRUE, method = "nearest")
+matchitobject0 = MatchIt::matchit(treatment_var ~ S1_1 + S1_2 + S1_3 + S1_4 + S2_1 + S2_2 + S2_3 + S2_4 + + S3_1 + S3_2 + S3_3 + S3_4 + S4_1 + S4_2 + S4_3 + S4_4 + I1_1 + I1_2 + I1_3 + I1_4 + I2_1 + I2_2 + I2_3 + I2_4 + PARTY7_1 + PARTY7_2 + PARTY7_3 + PARTY7_4 + PARTY7_5 + PARTY7_6 + PARTY7_7 + REL1_1 + REL1_2 + REL1_3 + REL1_4 + REL1_5 + REL1_6 + REL1_8 + REL1_9 + REL1_10 + REL1_11 + REL1_12 + REL1_13 + REL2_1 + REL2_2 + REL2_3 + REL2_4 + REL2_5 + REL2_6 + PPAGE + PPEDUCAT_1 + PPEDUCAT_2 + PPEDUCAT_3 + PPEDUCAT_4 + PPETHM_1 + PPETHM_2 + PPETHM_4 + gender_cat + PPHHHEAD + PPHHSIZE + PPHOUSE_1 + PPHOUSE_2 + PPHOUSE_3 + PPHOUSE_4 + PPHOUSE_5 + PPINCIMP_1 + PPINCIMP_2 + PPINCIMP_3 + PPINCIMP_4 + PPINCIMP_5 + PPINCIMP_6 + PPINCIMP_7 + PPINCIMP_8 + PPINCIMP_9 + PPINCIMP_10 + PPINCIMP_11 + PPINCIMP_12 + PPINCIMP_13 + PPINCIMP_14 + PPINCIMP_15 + PPINCIMP_16 + PPINCIMP_17 + PPINCIMP_18 + PPINCIMP_19 + PPMARIT_1 + PPMARIT_2 + PPMARIT_3 +PPMARIT_4 + PPMARIT_5 + PPMARIT_6 + PPMSACAT + PPREG4_1 + PPREG4_2 + PPREG4_3 + PPREG4_4 + PPRENT_1 + PPRENT_2 + PPRENT_3 + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + PPWORK_1 +  PPWORK_2 + PPWORK_3 + PPWORK_4 + PPWORK_5 + PPWORK_6 + PPWORK_7 + PPNET, data5, distance = "glm", link = "probit", replace = TRUE, method = "nearest")
 matchitobject0_sum <- summary(matchitobject0)
-matchitobject0_sum
+matchitobject0_sum 
 plot(matchitobject0_sum, var.order = "matched") 
 # plot(matchitobject0, type='density', which.xs = c("factor(S1)", "factor(S2)", "factor(S3)"))
 ```
