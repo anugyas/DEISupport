@@ -152,10 +152,6 @@ plot(matchitobject0, type = 'density', which.xs = c('REL1_8','REL1_9','REL1_10')
 plot(matchitobject0, type = 'density', which.xs = c('REL1_11','REL1_12','REL1_13'))
 ```
 
-
-
-
-
 ```{r}
 plot(matchitobject0, type = 'density', which.xs = c('REL2_1','REL2_2','REL2_3'))
 plot(matchitobject0, type = 'density', which.xs = c('REL2_4','REL2_5','REL2_6'))
@@ -172,8 +168,6 @@ plot(matchitobject0, type = 'density', which.xs = c('PPHOUSE_3','PPHOUSE_4','PPH
 plot(matchitobject0, type = 'density', which.xs = c('PPAGE', 'gender_cat','PPHHHEAD'))
 plot(matchitobject0, type = 'density', which.xs = c('PPMSACAT', 'PPNET','PPHHSIZE'))
 ```
-
-
 
 ```{r}
 plot(matchitobject0, type = 'density', which.xs = c('PPINCIMP_1','PPINCIMP_2','PPINCIMP_3'))
