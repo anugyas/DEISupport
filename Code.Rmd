@@ -18,6 +18,7 @@ library(ggplot2)
 library(stats)
 library(tidyr)
 library(fastDummies)
+library(vtable)
 ```
 
 # Listing confounders, treatment and outcome
@@ -46,7 +47,7 @@ PPEDUCAT - education into 4 categories (pri 1)
 
 Choose one of the above and make dummies for categorical
 
-PPETHM - race/ethnicity categorical - make dummy (only 1,2, 4 exist in the data) (pri 2)
+PPETHM - race/ethnicity categorical - make dummy (only 1,2, 4 exist in the data) (pri 2) - should be 1 right?
 PPGENDER - gender categorical, this will be mapped to gender_cat = 1 if male else 0 (pri 1)
 PPHHHEAD - household head categorical (pri 3)
 PPHHSIZE - continuous (pri 3)
@@ -116,6 +117,8 @@ data3  <- data2 %>% mutate(treatment_var = ifelse(I3 == 1 | I3 == 2, 1, 0)) %>% 
 data4 <- data3 %>% mutate(gender_cat = ifelse(PPGENDER == 1, 1, 0))
 data5 <- dummy_cols(data4, select_columns=c('S1', 'S2', 'S3', 'S4', 'I1', 
                                             'I2', 'PARTY7', 'REL1', 'REL2', 'PPEDUCAT','PPETHM', 'PPHOUSE', 'PPINCIMP', 'PPMARIT', 'PPREG4', 'PPRENT', 'PPWORK'))
+hist(data5$treatment_var)
+st(data5, vars = c('PPAGE', 'PPHHSIZE', 'outcome_var'), group.long = TRUE, out="latex")
 ```
 
 # Prop score + 1-1 matching with replacement
