@@ -85,7 +85,7 @@ BART
 
 # Load and describe data
 ```{r}
-data0 <- read_sav("/home/as14770/DEISupport/TESS2 118_Bielby_Client.sav")
+data0 <- read_sav("./TESS2 118_Bielby_Client.sav")
 data1 <- data0 %>% drop_na(E2_1G) #dropping race focus group
 summary(data1)
 hist(data1$S1)
@@ -114,11 +114,15 @@ hist(data1$PPNET)
 ```{r}
 data2 <- filter(data1, S1 > -1 & S2> -1 & S3 > -1 & S4 > -1 & I1 > -1 & I2 > -1 & REL1 > -1 & REL2 > -1)
 data3  <- data2 %>% mutate(treatment_var = ifelse(I3 == 1 | I3 == 2, 1, 0)) %>% mutate(outcome_var = (E2_1G+E2_2G+E2_3G+E2_4G+E2_5G+E2_6GA+E2_7G+E2_8GA)/8)
-data4 <- data3 %>% mutate(gender_cat = ifelse(PPGENDER == 1, 1, 0))
+vtable(data3)
+# data4 <- data3 %>% mutate(gender_cat = ifelse(PPGENDER == 1, 1, 0))
+data4 <- data3
 data5 <- dummy_cols(data4, select_columns=c('S1', 'S2', 'S3', 'S4', 'I1', 
                                             'I2', 'PARTY7', 'REL1', 'REL2', 'PPEDUCAT','PPETHM', 'PPHOUSE', 'PPINCIMP', 'PPMARIT', 'PPREG4', 'PPRENT', 'PPWORK'))
-hist(data5$treatment_var)
-st(data5, vars = c('PPAGE', 'PPHHSIZE', 'outcome_var'), group.long = TRUE, out="latex")
+data5_for_summary <- data4 %>% mutate(factor(treatment_var), factor(S1), factor(S2), factor(S3), factor(S4), factor(I1), factor(I2), factor(PARTY7), factor(REL1), factor(REL2), factor(PPGENDER), factor(PPEDUCAT), factor(PPETHM), factor(PPHOUSE), factor(PPINCIMP), factor(PPMARIT), factor(PPREG4), factor(PPRENT), factor(PPWORK), factor(PPNET), factor(PPMSACAT), factor(PPHHHEAD), cols.break=3) 
+# hist(data5$treatment_var)
+st(data5, vars = c('PPAGE', 'PPHHSIZE', 'outcome_var'), out='latex', summ = c('notNA(x)', 'median(x)', 'mean(x)',   'sd(x)', 'min(x)', 'max(x)'))
+st(data5_for_summary, vars = c('factor(treatment_var)','factor(S1)', 'factor(S2)', 'factor(S3)', 'factor(S4)', 'factor(I1)', 'factor(I2)', 'factor(PARTY7)', 'factor(REL1)', 'factor(REL2)', 'factor(PPGENDER)', 'factor(PPEDUCAT)', 'factor(PPETHM)', 'factor(PPHOUSE)', 'factor(PPINCIMP)', 'factor(PPMARIT)', 'factor(PPREG4)', 'factor(PPRENT)', 'factor(PPWORK)', 'factor(PPNET)', 'factor(PPMSACAT)', 'factor(PPHHHEAD)'), out='latex')
 ```
 
 # Prop score + 1-1 matching with replacement
@@ -126,7 +130,7 @@ st(data5, vars = c('PPAGE', 'PPHHSIZE', 'outcome_var'), group.long = TRUE, out="
 ## Computing prop score and matching with replacement to restructure the dataset
 ```{r}
 # matchitobject0 = MatchIt::matchit(treatment_var ~ S1_1 + S1_2 + S1_3 + S1_4 + S2_1 + S2_2 + S2_3 + S2_4 + + S3_1 + S3_2 + S3_3 + S3_4 + S4_1 + S4_2 + S4_3 + S4_4 + I1_1 + I1_2 + I1_3 + I1_4 + I2_1 + I2_2 + I2_3 + I2_4 + PARTY7_1 + PARTY7_2 + PARTY7_3 + PARTY7_4 + PARTY7_5 + PARTY7_6 + PARTY7_7 + REL1_1 + REL1_2 + REL1_3 + REL1_4 + REL1_5 + REL1_6 + REL1_8 + REL1_9 + REL1_10 + REL1_11 + REL1_12 + REL1_13 + REL2_1 + REL2_2 + REL2_3 + REL2_4 + REL2_5 + REL2_6 + PPAGE + PPEDUCAT_1 + PPEDUCAT_2 + PPEDUCAT_3 + PPEDUCAT_4 + PPETHM_1 + PPETHM_2 + PPETHM_4 + gender_cat + PPHHHEAD + PPHHSIZE + PPHOUSE_1 + PPHOUSE_2 + PPHOUSE_3 + PPHOUSE_4 + PPHOUSE_5 + PPINCIMP_1 + PPINCIMP_2 + PPINCIMP_3 + PPINCIMP_4 + PPINCIMP_5 + PPINCIMP_6 + PPINCIMP_7 + PPINCIMP_8 + PPINCIMP_9 + PPINCIMP_10 + PPINCIMP_11 + PPINCIMP_12 + PPINCIMP_13 + PPINCIMP_14 + PPINCIMP_15 + PPINCIMP_16 + PPINCIMP_17 + PPINCIMP_18 + PPINCIMP_19 + PPMARIT_1 + PPMARIT_2 + PPMARIT_3 +PPMARIT_4 + PPMARIT_5 + PPMARIT_6 + PPMSACAT + PPREG4_1 + PPREG4_2 + PPREG4_3 + PPREG4_4 + PPRENT_1 + PPRENT_2 + PPRENT_3 + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + PPWORK_1 +  PPWORK_2 + PPWORK_3 + PPWORK_4 + PPWORK_5 + PPWORK_6 + PPWORK_7 + PPNET, data5, distance = "glm", link = "probit", replace = TRUE, method = "nearest")
-matchitobject0 = MatchIt::matchit(treatment_var ~ factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(I1):factor(I2) + factor(PARTY7) + factor(REL1) + factor(REL2) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PPETHM):factor(gender_cat) + factor(PARTY7):factor(PPEDUCAT) + factor(gender_cat) + factor(gender_cat):factor(PPWORK) + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET) + factor(PPNET):factor(PPMSACAT), data5, distance = "glm", link = "probit", replace = TRUE, method = "nearest")
+matchitobject0 = MatchIt::matchit(treatment_var ~ factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(I1):factor(I2) + factor(PARTY7) + factor(REL1) + factor(REL2) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PPETHM):factor(PPGENDER) + factor(PARTY7):factor(PPEDUCAT) + factor(PPGENDER) + factor(PPGENDER):factor(PPWORK) + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET) + factor(PPNET):factor(PPMSACAT), data5, distance = "glm", link = "probit", replace = TRUE, method = "nearest")
 ```
 
 
@@ -149,7 +153,7 @@ plot(matchitobject0, type = 'histogram', interactive=FALSE)
 
 ## Density plots per confounder to assess balance
 ```{r}
-# plot(matchitobject0, type = 'density', which.xs = c('factor(S1)`1','factor(S1)`2','factor(S1)`3'))
+# plot(matchitobject0, type = 'density', which.xs = c('factor(S1)1','factor(S1)2','factor(S1)3'))
 # plot(matchitobject0, type = 'density', which.xs = c('S1_4'))
 # plot(matchitobject0, type = 'density', which.xs = c('S2_1','S2_2','S2_3'))
 # plot(matchitobject0, type = 'density', which.xs = c('S2_4'))
