@@ -19,14 +19,13 @@ library(stats)
 library(tidyr)
 library(fastDummies)
 library(vtable)
+library(bartCause)
 ```
 
 # Listing confounders, treatment and outcome
 Treatment - 1 where response to I3 is 1 or 2, else 0
 
-Is this treatment variable manipulable?  
-
-Outcome - E2_1G , 1(strongly favour) to 5(strongly oppose) 
+Outcome : Support for DEI policy - 6 - Avg of all 8 G question responses 
 
 Confounders - 
 
@@ -34,7 +33,7 @@ Confounders -
 2. I1 I2 (pri 1)
 3. PARTY7 - categorical - make dummy (pri 1)
 4. REL1 - categorical - make dummy (1-14, 7 missing) (pri 1)
-5. REL2 - continuous(1-9) (pri 2)
+5. REL2 - continuous(1-9) (pri 2) Is this necessary?
 6. Demographics -
 PPAGE - continuous age varibale (pri 2)
 <!-- PPAGECAT - age divided into 7 categories -->
@@ -47,8 +46,8 @@ PPEDUCAT - education into 4 categories (pri 1)
 
 Choose one of the above and make dummies for categorical
 
-PPETHM - race/ethnicity categorical - make dummy (only 1,2, 4 exist in the data) (pri 2) - should be 1 right?
-PPGENDER - gender categorical, this will be mapped to gender_cat = 1 if male else 0 (pri 1)
+PPETHM - race/ethnicity categorical - make dummy (only 1,2, 4 exist in the data) (pri 1) - should be 1 right?
+PPGENDER - gender categorical
 PPHHHEAD - household head categorical (pri 3)
 PPHHSIZE - continuous (pri 3)
 PPHOUSE - housing type categorical - make dummy (pri 3)
@@ -63,7 +62,7 @@ Choose one of the above and make dummies for categorical
 
 PPRENT - ownership status of home categorical - make dummy - highly likely to be correlated with house hold income (pri 3)
 
-Presence (binary) of household members in that age group - (pri 3)
+Number of household members in that age group - (pri 3)
 PPT01
 PPT25
 PPT612
@@ -77,7 +76,7 @@ ESTIMAND - ATT
 
 Approaches - 
 
-Prop score w/ 1-1 matching
+Prop score w/ Neaest matching with Replacement
 IPTW 
 GenMatch
 BART
@@ -113,25 +112,64 @@ data1 <- data0 %>% drop_na(E2_1G) #dropping race focus group
 # Data Preprocessing
 ```{r}
 data2 <- filter(data1, S1 > -1 & S2> -1 & S3 > -1 & S4 > -1 & I1 > -1 & I2 > -1 & REL1 > -1 & REL2 > -1)
-data3  <- data2 %>% mutate(treatment_var = ifelse(I3 == 1 | I3 == 2, 1, 0)) %>% mutate(outcome_var = (E2_1G+E2_2G+E2_3G+E2_4G+E2_5G+E2_6GA+E2_7G+E2_8GA)/8)
+data3  <- data2 %>% mutate(treatment_var = ifelse(I3 == 1 | I3 == 2, 1, 0)) %>% mutate(outcome_var = (6 - (E2_1G+E2_2G+E2_3G+E2_4G+E2_5G+E2_6GA+E2_7G+E2_8GA)/8)) # Now outcome variable is support in increasing order of value, i.e outcome_var = 1 is less support and outcome_var = 5 is more support. 
 # vtable(data3)
 # data4 <- data3 %>% mutate(gender_cat = ifelse(PPGENDER == 1, 1, 0))
 data4 <- data3
-data5 <- dummy_cols(data4, select_columns=c('S1', 'S2', 'S3', 'S4', 'I1', 
-                                            'I2', 'PARTY7', 'REL1', 'REL2', 'PPEDUCAT','PPETHM', 'PPHOUSE', 'PPINCIMP', 'PPMARIT', 'PPREG4', 'PPRENT', 'PPWORK'))
+# data5 <- dummy_cols(data4, select_columns=c('S1', 'S2', 'S3', 'S4', 'I1', 'I2', 'PARTY7', 'REL1', 'REL2', 'PPEDUCAT','PPETHM', 'PPHOUSE', 'PPINCIMP', 'PPMARIT', 'PPREG4', 'PPRENT', 'PPWORK'))
+data5 <- data4
 outcome_treated <- data5 %>% filter(treatment_var==1)
 outcome_control <- data5 %>% filter(treatment_var==0)
+hist(data5$treatment_var)
 hist(outcome_treated$outcome_var)
 hist(outcome_control$outcome_var)
 # data5_for_summary <- data4 %>% mutate(factor(treatment_var), factor(S1), factor(S2), factor(S3), factor(S4), factor(I1), factor(I2), factor(PARTY7), factor(REL1), factor(REL2), factor(PPGENDER), factor(PPEDUCAT), factor(PPETHM), factor(PPHOUSE), factor(PPINCIMP), factor(PPMARIT), factor(PPREG4), factor(PPRENT), factor(PPWORK), factor(PPNET), factor(PPMSACAT), factor(PPHHHEAD), cols.break=3) 
-# # hist(data5$treatment_var)
 # st(data5, vars = c('PPAGE', 'PPHHSIZE', 'outcome_var'), out='latex', summ = c('notNA(x)', 'median(x)', 'mean(x)',   'sd(x)', 'min(x)', 'max(x)'))
 # st(data5_for_summary, vars = c('factor(treatment_var)','factor(S1)', 'factor(S2)', 'factor(S3)', 'factor(S4)', 'factor(I1)', 'factor(I2)', 'factor(PARTY7)', 'factor(REL1)', 'factor(REL2)', 'factor(PPGENDER)', 'factor(PPEDUCAT)', 'factor(PPETHM)', 'factor(PPHOUSE)', 'factor(PPINCIMP)', 'factor(PPMARIT)', 'factor(PPREG4)', 'factor(PPRENT)', 'factor(PPWORK)', 'factor(PPNET)', 'factor(PPMSACAT)', 'factor(PPHHHEAD)'), out='latex')
 ```
 
 ```{r}
-naive_lin_reg <- lm(outcome_var ~ treatment_var + factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(I1):factor(I2) + factor(PARTY7) + factor(REL1) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PARTY7):factor(PPEDUCAT) + factor(PPGENDER) + factor(PPGENDER):factor(PPWORK) + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET) + factor(PPNET):factor(PPMSACAT), data=data5, model=TRUE, x=TRUE, y=TRUE, qr=TRUE)
-naive_lin_reg
+plot(data5$treatment_var, data5$outcome_var)
+```
+
+
+# Vanilla Linear Regression 
+```{r}
+vanilla_lin_reg1 <- lm(outcome_var ~ treatment_var, data=data5, model=TRUE, x=TRUE, y=TRUE, qr=TRUE)
+summary(vanilla_lin_reg1)
+vanilla_lin_reg2 <- lm(outcome_var ~ treatment_var + factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(PARTY7) + factor(REL1) + factor(REL2) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PPGENDER)  + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET), data=data5, model=TRUE, x=TRUE, y=TRUE, qr=TRUE)
+summary(vanilla_lin_reg2)
+```
+# BART
+
+```{r}
+bart_res <- bartc(outcome_var, treatment_var, factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(PARTY7) + factor(REL1) + factor(REL2) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PPGENDER)  + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET), data = data5, method.rsp = "bart", method.trt = "bart", estimand = 'att', crossvalidate = TRUE)
+bart_res
+```
+```{r}
+summary(bart_res)
+plot_sigma(bart_res)
+plot_est(bart_res)
+plot_indiv(bart_res)
+```
+```{r}
+bart_res <- bartc(outcome_var, treatment_var, factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(PARTY7) + factor(REL1) + factor(REL2) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PPGENDER)  + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET), data = data5, method.rsp = "bart", method.trt = "bart", estimand = 'att', crossvalidate = TRUE, commonSup.rule = "sd", commonSup.cut = 1)
+bart_res
+summary(bart_res)
+plot_sigma(bart_res)
+plot_est(bart_res)
+plot_indiv(bart_res)
+plot_support(bart_res)
+```
+
+```{r}
+bart_res <- bartc(outcome_var, treatment_var, factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(PARTY7) + factor(REL1) + factor(REL2) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PPGENDER)  + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET), data = data5, method.rsp = "bart", method.trt = "bart", estimand = 'att', crossvalidate = TRUE, commonSup.rule = "chisq", commonSup.cut = 0.05)
+bart_res
+summary(bart_res)
+plot_sigma(bart_res)
+plot_est(bart_res)
+plot_indiv(bart_res)
+plot_support(bart_res)
 ```
 
 # Prop score + 1-1 matching with replacement
@@ -151,18 +189,18 @@ matchitobject0_sum
 plot(matchitobject0_sum, var.order = "matched") 
 # plot(matchitobject0_sum_unstd, var.order = "matched") 
 ```
+
 ```{r}
 matchitobject0_sum_unstd <- summary(matchitobject0, standardize=FALSE)
 matchitobject0_sum_unstd
 ```
+
 ```{r}
 plot(matchitobject0, type = 'histogram', interactive=FALSE)
 ```
 
-
 ## Density plots per confounder to assess balance
 ```{r}
-# plot(matchitobject0, type = 'density', which.xs = c('factor(S1)1','factor(S1)2','factor(S1)3'))
 # plot(matchitobject0, type = 'density', which.xs = c('S1_4'))
 # plot(matchitobject0, type = 'density', which.xs = c('S2_1','S2_2','S2_3'))
 # plot(matchitobject0, type = 'density', which.xs = c('S2_4'))
@@ -223,3 +261,64 @@ plot(matchitobject0, type = 'histogram', interactive=FALSE)
 treatment_effect0 <- lm(outcome_var ~ treatment_var + factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2)+ factor(PARTY7) + factor(REL1) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PPGENDER) + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET), data=data5, model=TRUE, x=TRUE, y=TRUE, qr=TRUE, weights=matchitobject0$weights)
 summary(treatment_effect0)
 ```
+
+# IPTW
+```{r}
+iptw_model = glm(treatment_var ~ factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(I1):factor(I2) + factor(PARTY7) + factor(REL1) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PARTY7):factor(PPEDUCAT) + factor(PPGENDER) + factor(PPGENDER):factor(PPWORK) + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET) + factor(PPNET):factor(PPMSACAT), data = data5, family = binomial(link ="logit"))
+```
+
+```{r}
+iptw_data = augment_columns(iptw_model,data5,type.predict = "response")%>%rename(propensity= .fitted)
+weights = ifelse(iptw_data$treatment_var == 1,1,iptw_data$propensity/(1-iptw_data$propensity))
+m.iptw <- MatchIt::matchit(treatment_var ~ factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(I1):factor(I2) + factor(PARTY7) + factor(REL1) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PARTY7):factor(PPEDUCAT) + factor(PPGENDER) + factor(PPGENDER):factor(PPWORK) + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET) + factor(PPNET):factor(PPMSACAT), data = iptw_data, method = NULL, distance = "glm", link = "probit", s.weights=weights)
+iptw_summ_obj <- summary(m.iptw, data=iptw_data) 
+iptw_summ_obj_unstd <- summary(m.iptw, standardize=FALSE)
+
+
+iptw_summ_obj
+```
+
+
+
+
+```{r}
+iptw_summ_obj_unstd
+plot(iptw_summ_obj, var.order = "unmatched")
+plot(m.iptw, type = 'histogram', interactive=FALSE)
+```
+```{r}
+linreg_treatment_effect <- lm(outcome_var ~ treatment_var + factor(S1) + factor(S2) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(PARTY7) + factor(REL1) + factor(REL2) + factor(PPEDUCAT) + factor(PPETHM) + factor(PPHOUSE) + factor(PPINCIMP) + I(PPAGE^2) +factor(PPGENDER) + factor(PPHHHEAD) + PPHHSIZE + factor(PPMARIT) + factor(PPREG4) + factor(PPMSACAT) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET) + factor(PPINCIMP):factor(PPEDUCAT) + factor(PPNET):factor(PPMSACAT) + factor(REL1):factor(REL2) + factor(REL1):factor(PARTY7) + factor(PPWORK):factor(PPGENDER) + factor(REL1):factor(PPETHM) + factor(PPGENDER):factor(PPINCIMP) + factor(PPINCIMP):factor(S1)  + factor(PARTY7):factor(PPREG4)  + factor(I1):factor(I2), data = iptw_data, weights= m.iptw$weights, model = TRUE, x = TRUE, y = TRUE, qr = TRUE)
+summary(linreg_treatment_effect)
+```
+
+
+
+# Genetic Matching
+```{r}
+gen_matchitobject = MatchIt::matchit(treatment_var ~ factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(I1):factor(I2) + factor(PARTY7) + factor(REL1) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PARTY7):factor(PPEDUCAT) + factor(PPGENDER) + factor(PPGENDER):factor(PPWORK) + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET) + factor(PPNET):factor(PPMSACAT), data5, distance = "glm", link = "probit", replace = TRUE, method = "genetic")
+gen_matchitobject_sum <- summary(gen_matchitobject)
+summary(gen_matchitobject, standardize =  FALSE)
+gen_matchitobject_sum
+```
+
+```{r}
+# matchitobject1_sum <- summary(, standardize=TRUE)
+# matchitobject1_sum
+plot(gen_matchitobject_sum, var.order = "matched")
+plot(gen_matchitobject, type = 'histogram', interactive=FALSE)
+```
+
+```{r}
+treatment_effect_gen1 <- lm(outcome_var ~ treatment_var + factor(S1) + factor(S2) + factor(S3) + factor(S3) + factor(S4) + factor(I1) + factor(I2)+ factor(PARTY7) + factor(REL1) + PPAGE + factor(PPEDUCAT)+ factor(PPETHM) + factor(PPGENDER) + factor(PPHHHEAD) + PPHHSIZE + factor(PPHOUSE) + factor(PPINCIMP) + factor(PPMARIT) + factor(PPMSACAT) + factor(PPREG4) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET), data=data5, model=TRUE, x=TRUE, y=TRUE, qr=TRUE, weights=gen_matchitobject$weights)
+summary(treatment_effect_gen1)
+```
+
+```{r}
+genmatch = MatchIt::matchit(treatment_var ~ factor(S1) + factor(S2) + factor(S3) + factor(S4) + factor(I1) + factor(I2) + factor(PARTY7) + factor(REL1) + factor(REL2) + factor(PPEDUCAT) + factor(PPETHM) + factor(PPHOUSE) + factor(PPINCIMP) + I(PPAGE^2) +factor(PPGENDER) + factor(PPHHHEAD) + PPHHSIZE + factor(PPMARIT) + factor(PPREG4) + factor(PPMSACAT) + factor(PPRENT) + PPT01 + PPT25 + PPT612 + PPT1317 + PPT18OV + factor(PPWORK) + factor(PPNET) + factor(PPINCIMP):factor(PPEDUCAT) + factor(PPNET):factor(PPMSACAT) + factor(REL1):factor(REL2) + factor(REL1):factor(PARTY7) + factor(PPWORK):factor(PPGENDER) + factor(REL1):factor(PPETHM) + factor(PPGENDER):factor(PPINCIMP) + factor(PPINCIMP):factor(S1)  + factor(PARTY7):factor(PPREG4)  + factor(I1):factor(I2), data5, distance = "glm", link = "probit", replace = TRUE, method = "genetic")
+genmatch <- summary(genmatch, standardize=TRUE)
+genmatch_unstd <- summary(genmatch, standardize=FALSE)
+genmatch 
+genmatch_unstd
+```
+
+
